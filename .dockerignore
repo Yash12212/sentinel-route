@@ -1,0 +1,20 @@
+# Repository metadata is not needed in the image.
+.git
+# CI configuration is not needed at runtime.
+.github
+# Host virtual environments.
+.venv
+venv
+# Host bytecode.
+__pycache__
+# Local runtime logs are mounted instead.
+logs
+# Local tracking data and artifacts.
+mlruns
+mlartifacts
+# Tests are not copied into the image.
+tests
+# Test cache.
+.pytest_cache
+# Local secrets must not enter the image.
+.env

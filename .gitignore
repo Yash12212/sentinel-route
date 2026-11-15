@@ -1,0 +1,25 @@
+# Python bytecode.
+__pycache__/
+# Compiled modules.
+*.py[cod]
+# Local virtual environments.
+.venv/
+venv/
+# Local secrets and overrides.
+.env
+# Runtime logs.
+logs/*.db
+logs/*.log
+# Local MLflow data.
+mlruns/
+mlartifacts/
+mlflow.db
+# Ignore other downloaded CSVs but track the project dataset.
+data/raw/*.csv
+!data/raw/Big_data_dataset.csv
+# Generated artifacts.
+data/reference_stats.json
+data/eval_report.json
+tests/sample_borderline.json
+# Test runner cache.
+.pytest_cache/
