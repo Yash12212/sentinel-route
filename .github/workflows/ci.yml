@@ -1,0 +1,77 @@
+name: SentinelRoute CI/CD  # Tests, image publishing, and manual retraining.
+
+on:  # Trigger on main changes, pull requests, or a manual run.
+  push:
+    branches: [main]  # Main-branch pushes publish an image.
+  pull_request:
+    branches: [main]  # PRs run tests only.
+  workflow_dispatch:  # Enables the manual retrain job.
+
+jobs:
+  test:  # Fast feedback for every change.
+    name: Run Tests  # Human-readable job label.
+    runs-on: ubuntu-latest  # Standard GitHub runner.
+    steps:
+      - name: Check out repository  # Fetch the project.
+        uses: actions/checkout@v4
+      - name: Set up Python 3.11  # Match the Docker image.
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies  # Install pinned requirements.
+        run: pip install -r requirements.txt
+      - name: Run pytest  # Execute all 15 tests.
+        run: python -m pytest -v
+
+  build-and-push:  # Publish the image after tests pass.
+    name: Build & Publish to GHCR  # Human-readable job label.
+    needs: test  # Never publish a failing build.
+    runs-on: ubuntu-latest  # Standard GitHub runner.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'  # Main pushes only.
+    permissions:
+      contents: read  # Read the repository.
+      packages: write  # Push to GHCR.
+    steps:
+      - name: Check out repository  # Fetch the project.
+        uses: actions/checkout@v4
+      - name: Log in to GHCR  # Authenticate to the registry.
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io  # GitHub Container Registry.
+          username: ${{ github.actor }}  # Acting user.
+          password: ${{ secrets.GITHUB_TOKEN }}  # Ephemeral workflow token.
+      - name: Generate image metadata  # Tags and OCI labels.
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}  # Repository-scoped image name.
+          tags: |
+            type=raw,value=latest  # Rolling latest tag.
+            type=sha,format=short  # Immutable commit tag.
+      - name: Build and push image  # Publish the container.
+        uses: docker/build-push-action@v6
+        with:
+          context: .  # Repository root is the build context.
+          push: true  # Publish to the registry.
+          tags: ${{ steps.meta.outputs.tags }}  # Tags from metadata-action.
+          labels: ${{ steps.meta.outputs.labels }}  # Standard OCI labels.
+
+  retrain-check:  # Manual job that exercises the trainer and gate.
+    name: Manual Retrain Check  # Human-readable job label.
+    if: github.event_name == 'workflow_dispatch'  # Manual runs only.
+    runs-on: ubuntu-latest  # Standard GitHub runner.
+    env:
+      # CI has no tracking server: use a local SQLite store so the trainer,
+      # registry and champion gate all run for real in the job.
+      MLFLOW_TRACKING_URI: sqlite:///mlflow.db  # Local store for this job only.
+    steps:
+      - name: Check out repository  # Fetch the project.
+        uses: actions/checkout@v4
+      - name: Set up Python 3.11  # Match the Docker image.
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies  # Install pinned requirements.
+        run: pip install -r requirements.txt
+      - name: Train and apply quality gate  # Register and exercise promotion.
+        run: python -m src.train --promote
