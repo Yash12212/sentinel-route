@@ -1,0 +1,47 @@
+services:
+  mlflow:  # Tracking server and model registry.
+    image: ghcr.io/mlflow/mlflow:v2.17.2  # Pinned upstream image.
+    container_name: sentinel-mlflow  # Stable container name.
+    ports:
+      - "5000:5000"  # Expose the UI and API locally.
+    volumes:
+      - mlflow_data:/mlflow  # Persist runs, artifacts, and the registry.
+    command: >  # SQLite backend plus served artifacts.
+      mlflow server
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --artifacts-destination /mlflow/artifacts
+      --serve-artifacts
+      --host 0.0.0.0
+      --port 5000
+    healthcheck:  # Gate the API on a ready tracking server.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 10s  # Probe every 10 seconds.
+      timeout: 5s  # Fail slow probes quickly.
+      retries: 6  # Allow startup time.
+
+  aiops-api:  # Cascade inference service.
+    build: .  # Build from the repository Dockerfile.
+    container_name: sentinel-api  # Stable container name.
+    ports:
+      - "8000:8000"  # Public inference port.
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000  # Use the compose service name.
+      - DB_PATH=/app/logs/predictions.db  # Write inside the bind mount.
+    volumes:
+      - ./logs:/app/logs  # Persist predictions and healing logs on the host.
+    depends_on:
+      mlflow:
+        condition: service_healthy  # Do not start before the registry responds.
+    command: uvicorn src.api:app --host 0.0.0.0 --port 8000  # Serve the API.
+
+  target-service:  # Simulated service that the watchdog heals.
+    build: .  # Reuse the same image.
+    container_name: sentinel-target  # Stable container name.
+    ports:
+      - "8001:8001"  # Telemetry and fault-injection port.
+    volumes:
+      - ./data:/app/data:ro  # Read real reference samples, read-only.
+    command: uvicorn src.ops:target_app --host 0.0.0.0 --port 8001  # Serve the target.
+
+volumes:
+  mlflow_data:  # Named volume owned by Docker, not the repo.
