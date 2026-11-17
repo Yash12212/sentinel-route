@@ -266,10 +266,12 @@ python -m src.ops drift
 Expected: a table of features with KS statistics and p-values, followed by:
 
 ```text
-[drift_check] Drifted features: 11/11
+[drift_check] Drifted features: 9/11
 [drift_check] Running local retrain & promotion gate...
 [drift_check] API /reload -> 200
 ```
+
+The exact count depends on the last 200 prediction rows, which include watchdog traffic. Three or more drifted features trigger a retrain; the captured evidence run flagged 9 of 11.
 
 **What this proves:** live traffic no longer looks like the training data. The platform retrained both models, applied the quality gate, and asked the API to reload the current champions. Drift detection and retraining are automatic once the check is invoked; the demo runs the check manually so you can see each step.
 
@@ -567,7 +569,7 @@ You do **not** need to change any of these for the demo. They exist so the same 
 | `API_BASE` | `http://localhost:8000` | API base for predict/reload calls |
 | `HEAL_RESTART_CMD` | `docker compose restart target-service` | Command that restarts the target |
 
-`.env.example` documents the same values. Set them in your shell or in the Compose file; containers and host-side loops read process environment variables.
+`.env.example` documents the same values, one `KEY=value` per line with comments on separate lines, so Compose and the shell parse it correctly. Set them in your shell or in the Compose file; containers and host-side loops read process environment variables.
 
 ## Tests and CI
 
