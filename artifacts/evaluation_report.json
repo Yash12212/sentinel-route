@@ -1,0 +1,46 @@
+{
+  "batch_file": "data\\batches\\new_batch.csv",
+  "batch_rows": 300,
+  "champion_version": "1",
+  "candidate_version": "2",
+  "existing_champion_on_new_batch": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0
+  },
+  "candidate_on_new_batch": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0
+  },
+  "candidate_on_combined_holdout": {
+    "accuracy": 0.9995,
+    "precision": 1.0,
+    "recall": 0.9474,
+    "f1_score": 0.973,
+    "roc_auc": 0.9988,
+    "avg_inference_ms": 0.0199
+  },
+  "quality_gate": {
+    "timestamp_utc": "2026-11-20T09:09:46Z",
+    "primary_metric": "f1_score",
+    "min_promotion_f1": 0.85,
+    "champion_metrics": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0
+    },
+    "candidate_metrics": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0
+    },
+    "eligible_for_promotion": true,
+    "decision": "ELIGIBLE_FOR_PROMOTION",
+    "reason": "candidate F1 (1.0000) >= floor (0.8500) and >= champion F1 (1.0000)"
+  }
+}
